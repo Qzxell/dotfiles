@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cd ~/Documents/Programacion/c++
+nvim $1.cpp
