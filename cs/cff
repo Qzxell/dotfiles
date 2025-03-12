@@ -39,7 +39,7 @@ function check_error() {
 }
 function dump_webpage() {
     echo -e "\n> Fetching sample cases from ${ORANGE}$url${NC}\n"
-    local webPageData=$(curl  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" $url)
+    local webPageData=$(curl -L $url)
     check_error "Failure occurred while loading web pages!"
 
     neededData=$(echo "$webPageData" | tr '\n' '|' | grep -o 'Example.*</pre>' | sed 's/<[^>]*>/\n/g' | sed 's/Examples//g' | sed 's/Example//g' | sed 's/Input/=====/g' | sed 's/Output/=====/g' | tr -s '\n' '|')
@@ -52,7 +52,69 @@ function dump_webpage() {
         exit -1
     fi
 }
+
 function run_test_cases() {
+    echo -e "\n> Running file ${ORANGE}'$programFile'${NC} against sample test cases...\n"
+
+    local data=$(echo -e $neededData | tr -s '=' '\n')
+    local is_input=0
+    local test_case=0
+    while IFS= read -r data_part;
+    do
+        [ `expr $is_input % 2` -eq 0 ] && true > $inputTextFile
+        [ `expr $is_input % 2` -ne 0 ] && true > $tempOutputFile
+
+        [ -z "$data_part" ] && continue
+        if [ "$data_part" != "|" ]; then
+            local lines=$(echo -e $data_part | tr '|' '\n')
+            while IFS= read -r line;
+            do
+                [ -z "$line" ] && continue;
+                if [ `expr $is_input % 2` -eq 0 ]; then 
+                    echo "$line" | cat >> $inputTextFile
+                else
+                    echo "$line" | cat >> $tempOutputFile
+                fi
+            done <<< "$lines"
+
+            is_input=`expr $is_input + 1`
+            if [ `expr $is_input % 2` -eq 0 ]; then
+                test_case=`expr $test_case + 1`
+                true > $outputTextFile
+                ./$programFile < $inputTextFile > $outputTextFile
+                check_error "Failure occurred while running output file!"
+    
+                local diffOutput=$(diff $outputTextFile $tempOutputFile)
+                local diffLines=$(echo "$diffOutput" | wc -l)
+                if [ $diffLines -gt 1 ]; then
+                    echo -e "--------------------\n>> Input:"
+                    cat $inputTextFile
+                    echo -e "--------------------\n>> Output:"
+                    cat $outputTextFile
+                    echo -e "--------------------\n>> Expected:"
+                    cat $tempOutputFile
+                    echo -e "--------------------\n"
+    
+                    echo -e "${RED}\u2718 Failed for test case $test_case!${NC}"
+                    echo -e "--------------------\n>> Output from diff"
+                    echo "$diffOutput"
+                    echo -e "--------------------\n"
+                    exit -1
+                fi
+            fi
+        fi
+    done <<< "$data"
+
+    echo -e "--------------------\n>> Last Input:"
+    cat $inputTextFile
+    echo -e "--------------------\n>> Output:"
+    cat $outputTextFile
+    echo -e "--------------------\n>> Expected:"
+    cat $tempOutputFile
+    echo -e "--------------------\n"
+    echo -e "${GREEN}\u2714 $test_case/$test_case sample test cases passed!\n${NC}"
+}
+function rrun_test_cases() {
     echo -e "\n> Running file ${ORANGE}'$programFile'${NC} against sample test cases...\n"
 
     local data=$(echo -e $neededData | tr -s '=' '\n')
@@ -118,4 +180,4 @@ function run_test_cases() {
 
 
 dump_webpage
-run_test_cases
+rrun_test_cases

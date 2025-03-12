@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Directorio donde se encuentran los casos de prueba
+TEST_DIR="./"
+
+# Nombre de tu ejecutable C++
+EXECUTABLE="./a"
+
+# Verifica si el ejecutable existe
+if [ ! -f "$EXECUTABLE" ]; then
+    echo "El ejecutable '$EXECUTABLE' no se encuentra."
+    exit 1
+fi
+
+# Lee el número total de casos de prueba
+if [ ! -f "number_case" ]; then
+    echo "No se encontró el archivo 'number_case' que contiene el número de casos de prueba."
+    exit 1
+fi
+
+total_cases=$(cat "number_case")
+
+# Itera sobre cada caso de prueba
+for ((i=1; i<=total_cases; i++)); do
+    # Define los archivos de entrada y salida
+    input_file="${TEST_DIR}t${i}_in"
+    expected_output_file="${TEST_DIR}t${i}_ou"
+    
+    # Verifica si los archivos existen
+    if [ ! -f "$input_file" ]; then
+        echo "No se encontró el archivo de entrada '$input_file'."
+        continue
+    fi
+    
+    if [ ! -f "$expected_output_file" ]; then
+        echo "No se encontró el archivo de salida esperado '$expected_output_file'."
+        continue
+    fi
+    
+    # Ejecuta el programa con el archivo de entrada
+    echo "Probando caso de prueba $i..."
+    actual_output=$(cat "$input_file" | $EXECUTABLE)
+    
+    # Compara la salida generada con la salida esperada
+    diff_output=$(diff <(echo "$actual_output") "$expected_output_file")
+    
+    if [ -n "$diff_output" ]; then
+        echo -e "${RED}Test case $i falló!${NC}"
+        echo -e "--------------------"
+        echo -e "Entrada:"
+        cat "$input_file"
+        echo -e "--------------------"
+        echo -e "Salida Generada:"
+        echo "$actual_output"
+        echo -e "--------------------"
+        echo -e "Salida Esperada:"
+        cat "$expected_output_file"
+        echo -e "--------------------"
+    else
+        echo -e "${GREEN}Test case $i pasó correctamente!${NC}"
+    fi
+done

@@ -1,0 +1,81 @@
+#!/bin/bash
+
+RED='\033[0;31m'
+GREEN='\033[0;032m'
+ORANGE='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+UNDERLINE='\e[4m'
+
+if [ $# -ne 1 ]; then
+    echo "$(basename $0): improper arguments list"
+    echo "Usage: obtain 'codigo del problema(ex. 2034C)'"
+    exit -1
+fi
+
+curl=$(which curl)
+inputTextFile="input.txt"
+tempOutputFile="temp.txt"
+outputTextFile="output.txt"
+neededData=""
+# Obtiene los argumentos
+codigo_problema="$1"
+
+# Utiliza expresiones regulares para separar números de letras
+letras=$(echo "$codigo_problema" | sed 's/[0-9]//g')
+numeros=$(echo "$codigo_problema" | sed 's/[^0-9]//g')
+
+url="https://codeforces.com/contest/$numeros/problem/$letras"
+echo "Letras del código: $letras"
+echo "Números del código: $numeros"
+
+function check_error() {
+    if [ $? -ne 0 ]; then
+        echo -e "$(basename $0): $1"
+        exit -1
+    fi
+}
+function dump_webpage() {
+    echo -e "\n> Fetching sample cases from ${ORANGE}$url${NC}\n"
+    local webPageData=$(curl  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" $url)
+    check_error "Failure occurred while loading web pages!"
+
+    neededData=$(echo "$webPageData" | tr '\n' '|' | grep -o 'Example.*</pre>' | sed 's/<[^>]*>/\n/g' | sed 's/Examples//g' | sed 's/Example//g' | sed 's/Input/=====/g' | sed 's/Output/=====/g' | tr -s '\n' '|')
+
+    if [ -z "$neededData" ]; then
+        echo -e "\n${RED}Error:${NC} Data cannot be parsed!\n${BLUE}Debug:${NC} Make sure you are in correct directory!\n"
+        echo "+-----WEB PAGE DATA-----+"
+        echo $webPageData
+        echo "+-----+-----+-----+-----+"
+        exit -1
+    fi
+}
+function save_test() {
+    local data=$(echo -e $neededData | tr -s '=' '\n')
+    local is_input=0
+    local test_case=1
+
+    while IFS= read -r data_part; do
+        if [ -n "$data_part" ] && [ "$data_part" != "|" ]; then
+            local file_prefix=$(printf "t%d" $test_case)
+
+            if [ $((is_input % 2)) -eq 0 ]; then
+                echo -n -e "$data_part" | tr '|' '\n' > "${file_prefix}_in"
+		sed -i '1d' "${file_prefix}_in"
+            else
+                echo -n -e "$data_part" | tr '|' '\n' > "${file_prefix}_ou"
+		sed -i '1d' "${file_prefix}_ou"
+
+                test_case=$((test_case + 1))
+            fi
+            is_input=$((is_input + 1))
+        fi
+    done <<< "$data"
+	test_case=$((test_case - 1))
+    echo "$test_case" > "number_case"
+
+    echo -e "${GREEN}Test cases saved successfully!${NC}\n"
+}
+
+dump_webpage
+save_test
