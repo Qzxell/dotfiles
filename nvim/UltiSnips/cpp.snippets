@@ -1,0 +1,138 @@
+snippet go "template"
+#include<bits/stdc++.h>
+
+using namespace std;
+
+using ll = long long;
+
+#define forn(i,n) for(int i=0 ;i<int(n);i++)
+#define forsn(i,s,n) for(int i=int(s);i<int(n);i++)
+
+#define vi vector<int>
+#define vl vector<ll>
+#define ii pair<int,int>
+#define vii vector<ii>
+#define fi first
+#define se second
+#define all(v) (v).begin(),(v).end()
+#define rall(v) (v).rbegin(),(v).rend()
+#define sz(v) (int)(v).size()
+
+void so(int test){
+	$0
+}
+
+int main(){
+        ios::sync_with_stdio(false);
+        cin.tie(0);
+        int tt = 1;
+        int test = 1;
+        while(tt--) so(test++);
+        return 0;
+}
+
+endsnippet
+
+snippet dfs "dfs"
+auto dfs = [&](auto && self, int nod , int pat)->void{
+	for(auto x : ${1:G}[nod]) if( x != pat){
+		self(self, x , nod);
+		$0
+	}
+};
+endsnippet
+
+snippet binpow "binary pow"
+ll binpow(int b,int e){
+	ll ret = 1;
+	while( e > 0){
+		if( e&1){
+			ret = ret * b;
+		}
+		b = b * b;
+		e >>= 1;
+	}
+	return ret;
+}
+endsnippet
+
+snippet cord "cord"
+int dx[] = {0,0,1,-1};
+int dy[] = {1,-1,0,0};
+endsnippet
+
+snippet bfs "dfs"
+auto bfs = [&](int nod){
+	qu.push(nod);
+	while(!qu.empty()){
+		int fr = qu.front();qu.pop();
+		for(auto x : G[fr){
+			$2
+		}
+	}
+};
+endsnippet
+
+snippet fts "fenwick"
+struct FT {
+	vl ft;
+	int lim ;
+
+	FT(int n) : lim(n){
+		ft.assign(n+1,0);
+	}
+	FT(vl &vec) {
+		lim = sz(vec);
+		ft.assign(lim+1,0);
+		forn(i,sz(vec)){
+			int ind = i + 1;//indx - 1
+			int pat = ind + (ind & -ind);
+			ft[ind] += vec[i];
+			if(pat <= lim)
+				ft[pat] += ft[ind];
+		}
+	}
+
+	void updt(int pos,int modi){
+		while( pos <= lim ){
+			ft[pos] += modi;
+			pos += pos&-pos;
+		}
+	}
+	ll query(int pos){
+		ll ret = 0;
+		while(pos > 0 ){
+			ret += ft[pos];
+			pos -= pos & -pos;
+		}
+		return ret;
+	}
+	ll query(int l, int r){
+		return query(r) - query(l-1);
+	}
+}
+endsnippet
+
+
+snippet ft "fenwick"
+const int N = ${1:2e5 + 5};
+ll ft[N];
+
+void updt(int pos,int modi){
+	while( pos <= lim ){
+		ft[pos] += modi;
+		pos += pos&-pos;
+	}
+}
+ll query(int pos){
+	ll ret = 0;
+	while(pos > 0 ){
+		ret += ft[pos];
+		pos -= pos & -pos;
+	}
+	return ret;
+}
+ll query(int l, int r){
+	return query(r) - query(l-1);
+}
+endsnippet

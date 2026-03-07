@@ -1,0 +1,26 @@
+#!/bin/bash
+
+tot=$(cat cases)
+
+# Definimos nuestra paleta de colores
+ROJO='\033[0;31m'
+VERDE='\033[0;32m'
+F_C='\033[0m'
+
+for (( i = 1 ; i <= tot; i++)); do
+	./a < "in$i"| diff -BZ - "ou$i" 
+	if [ $? -eq 0 ]; then
+		echo -e "t$i: ${VERDE}AC${F_C}"
+	else 
+		echo -e "t$i: ${ROJO}fallo${F_C} =============\n";
+
+		echo "expect : \n"
+		cat ou$i
+		echo "result : \n"
+		./a < in$i
+		echo "diff : \n"
+		./a < in$i | diff -y -Z -B --suppress-common-lines -W 60 - "ou$i"
+		echo -e "================\n";
+
+	fi
+done

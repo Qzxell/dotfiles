@@ -1,0 +1,48 @@
+#!/bin/bash
+
+PORT=27121
+echo "Escuchando..."
+
+# Limpiamos temporales previos
+rm -f raw_request.tmp
+
+# TRUCO PARA KALI / DEBIAN:
+# Usamos 'timeout' para que no se quede colgado eternamente si falla,
+# pero damos tiempo (2s) para recibir los datos.
+# 'nc -l -p' es la sintaxis estándar en Debian.
+timeout 5s nc -l -p $PORT > raw_request.tmp <<EOF
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+Content-Length: 0
+Connection: close
+
+EOF
+
+# Verificamos si llegó algo
+if [ ! -s raw_request.tmp ]; then
+    echo "❌ Error: No se recibieron datos. Intenta de nuevo."
+    exit 1
+fi
+
+# Extraemos el cuerpo del JSON (quitamos headers HTTP)
+# Buscamos la primera llave '{'
+json_body=$(grep -o '{.*}' raw_request.tmp)
+
+# Si grep falló, intentamos leer todo el archivo limpiando headers manualmente
+if [ -z "$json_body" ]; then
+     # Sed borra desde la línea 1 hasta la primera línea vacía
+     json_body=$(sed '1,/^\r$/d' raw_request.tmp)
+fi
+
+echo "✅ Datos recibidos. Procesando..."
+count=0
+while read -r test; do
+    count=$((count + 1))
+    echo "$test" | jq -r '.input' > "in$count"
+    echo "$test" | jq -r '.output' > "ou$count"
+    echo "   -> in$count / ou$count creados."
+done < <(echo "$json_body" | jq -c '.tests[]')
+
+echo "$count" > cases
+
+rm raw_request.tmp
